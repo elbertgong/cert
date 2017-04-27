@@ -97,6 +97,10 @@ public class ExcelReader {
         		attendee.setNumCredits(l1.get(7));
         		attendee.setEmailAddr(l1.get(8));
         		
+        		// can be improved
+        	    int x = (int) Math.pow(id, 2) + 52814627;
+        	    attendee.setCertCode(Integer.toHexString(x));
+        		
         		session.beginTransaction();
         		session.save(attendee);
         		session.getTransaction().commit();

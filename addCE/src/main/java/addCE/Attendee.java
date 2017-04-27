@@ -22,12 +22,13 @@ public class Attendee {
     private String creditType;
     private String numCredits;
     private String emailAddr;
+    private String certCode;
      
     public Attendee() {};
      
     public Attendee(Integer id, String firstName, String lastName, String profession,
     		String licenseNum, String country, String accredDate, String creditType,
-    		String numCredits, String emailAddr) {
+    		String numCredits, String emailAddr, String certCode) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -38,6 +39,7 @@ public class Attendee {
         this.creditType = creditType;
         this.numCredits = numCredits;
         this.emailAddr = emailAddr;
+        this.certCode = certCode;
     }
     
     public void setId(Integer input) { this.id = input;}
@@ -50,5 +52,6 @@ public class Attendee {
     public void setCreditType(String input) { this.creditType = input;}
     public void setNumCredits(String input) { this.numCredits = input;}
     public void setEmailAddr(String input) { this.emailAddr = input;}
+    public void setCertCode(String input) { this.certCode = input;}
  
 }
