@@ -1,5 +1,4 @@
 package addCE;
-// package com.mkyong;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -12,6 +11,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+// import java.math.BigInteger;
 
 import addCE.Attendee;
 import addCE.HibernateUtil;
@@ -24,6 +26,40 @@ public class ExcelReader {
     public void setFileName(String input) { this.excelFileName = input;}
     
     public ArrayList<ArrayList<String>> attendees = new ArrayList<ArrayList<String>>();
+    
+//	  Fowler No Voll hash function
+//    private static final BigInteger INIT64  = new BigInteger("cbf29ce484222325", 16);
+//    private static final BigInteger PRIME64 = new BigInteger("100000001b3",      16);
+//    private static final BigInteger MOD64   = new BigInteger("2").pow(64);
+//    public BigInteger fnv1_64(byte[] data) {
+//        BigInteger hash = INIT64;
+//        for (byte b : data) {
+//          hash = hash.multiply(PRIME64).mod(MOD64);
+//          hash = hash.xor(BigInteger.valueOf((int) b & 0xff));
+//        }
+//        return hash;
+//    }
+    
+    public String certcode() {
+    	
+    	List<Attendee> attendees = new ArrayList<Attendee>();
+    	SessionFactory sessionFactory = HibernateUtil.getSessionFactory();
+        Session session = sessionFactory.openSession();
+        StringBuilder sb = new StringBuilder();
+    	String candidateChars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    	do {
+            Random random = new Random();
+            for (int i = 0; i < 30; i++) {
+                sb.append(candidateChars.charAt(random.nextInt(candidateChars
+                        .length())));
+            }
+    		String sql = "from Attendee p where p.certCode = :certCode";
+            attendees = session.createQuery(sql).setParameter("certCode", sb.toString()).list();
+    	} while (!attendees.isEmpty());
+        
+        session.close();
+        return sb.toString();
+    }
 
     public void read() {
 
@@ -96,10 +132,7 @@ public class ExcelReader {
         		attendee.setCreditType(l1.get(6));
         		attendee.setNumCredits(l1.get(7));
         		attendee.setEmailAddr(l1.get(8));
-        		
-        		// can be improved
-        	    int x = (int) Math.pow(id, 2) + 52814627;
-        	    attendee.setCertCode(Integer.toHexString(x));
+        	    attendee.setCertCode(creader.certcode());
         		
         		session.beginTransaction();
         		session.save(attendee);
@@ -110,5 +143,6 @@ public class ExcelReader {
     	System.out.println(creader.attendees.size());
     	
     	session.close();
+    	
     }
 }

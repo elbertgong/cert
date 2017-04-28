@@ -1,0 +1,150 @@
+package addCE;
+
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.math.BigInteger;
+
+
+import addCE.Attendee;
+import addCE.HibernateUtil;
+
+public class ExcelReader {
+
+    // private static final String FILE_NAME = "C:/Users/owner/Desktop/testexcel.xlsx";
+    private String excelFileName = "../testexcel.xlsx";
+    
+    public void setFileName(String input) { this.excelFileName = input;}
+    
+    public ArrayList<ArrayList<String>> attendees = new ArrayList<ArrayList<String>>();
+    
+    // Fowler No Voll hash function
+    private static final BigInteger INIT64  = new BigInteger("cbf29ce484222325", 16);
+    private static final BigInteger PRIME64 = new BigInteger("100000001b3",      16);
+    private static final BigInteger MOD64   = new BigInteger("2").pow(64);
+    public BigInteger fnv1_64(byte[] data) {
+        BigInteger hash = INIT64;
+        for (byte b : data) {
+          hash = hash.multiply(PRIME64).mod(MOD64);
+          hash = hash.xor(BigInteger.valueOf((int) b & 0xff));
+        }
+        return hash;
+    }
+    
+    public String certcode() {
+    	
+    	List<Attendee> attendees = new ArrayList<Attendee>();
+    	SessionFactory sessionFactory = HibernateUtil.getSessionFactory();
+        Session session = sessionFactory.openSession();
+        StringBuilder sb = new StringBuilder();
+    	String candidateChars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    	do {
+            Random random = new Random();
+            for (int i = 0; i < 30; i++) {
+                sb.append(candidateChars.charAt(random.nextInt(candidateChars
+                        .length())));
+            }
+    		String sql = "from Attendee";
+            attendees = session.createQuery(sql).setParameter("certCode", sb.toString()).list();
+    	} while (!attendees.isEmpty());
+        
+        session.close();
+    	return sb.toString();
+    }
+
+    public void read() {
+
+        try {
+
+            FileInputStream excelFile = new FileInputStream(new File(excelFileName));
+            Workbook workbook = new XSSFWorkbook(excelFile);
+            Sheet datatypeSheet = workbook.getSheetAt(0);
+            Iterator<Row> iterator = datatypeSheet.iterator();
+            
+            iterator.next();
+            iterator.next();
+            iterator.next();
+
+            while (iterator.hasNext()) {
+
+                Row currentRow = iterator.next();
+                ArrayList<String> data = new ArrayList<String>();
+                Iterator<Cell> cellIterator = currentRow.iterator();
+
+                while (cellIterator.hasNext()) {
+
+                    Cell currentCell = cellIterator.next();
+                    //getCellTypeEnum shown as deprecated for version 3.15
+                    //getCellTypeEnum will be renamed to getCellType starting from version 4.0
+                    if (currentCell == null || currentCell.getCellTypeEnum() == CellType.BLANK) {
+                    	data.add("None");
+                    } else if (currentCell.getCellTypeEnum() == CellType.STRING) {
+                    	data.add(currentCell.getStringCellValue());
+                        //System.out.print(currentCell.getStringCellValue() + "--");
+                    } else if (currentCell.getCellTypeEnum() == CellType.NUMERIC) {
+                    	data.add(Double.toString(currentCell.getNumericCellValue()));
+                        //System.out.print(currentCell.getNumericCellValue() + "--");
+                    }
+                    
+                }
+                this.attendees.add(data);
+
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public static void main (String args[]) {
+    	ExcelReader creader = new ExcelReader();
+    	creader.read();
+    	
+    	SessionFactory sessionFactory = HibernateUtil.getSessionFactory();
+        Session session = sessionFactory.openSession();
+        
+        int id = 0;
+    	for (ArrayList<String> l1 : creader.attendees) {
+    		if (l1.get(0) != "None") {
+    			for (String n : l1) {
+        			System.out.print(n + " ");
+        		}
+        		System.out.println();
+        		
+        		Attendee attendee = new Attendee();
+        		attendee.setId(id);
+        		attendee.setFirstName(l1.get(0));
+        		attendee.setLastName(l1.get(1));
+        		attendee.setProfession(l1.get(2));
+        		attendee.setLicenseNum(l1.get(3));
+        		attendee.setCountry(l1.get(4));
+        		attendee.setAccredDate(l1.get(5));
+        		attendee.setCreditType(l1.get(6));
+        		attendee.setNumCredits(l1.get(7));
+        		attendee.setEmailAddr(l1.get(8));
+        	    attendee.setCertCode(creader.certcode());
+        		System.out.println(attendee.getCertCode());
+        		
+        		session.beginTransaction();
+        		session.save(attendee);
+        		session.getTransaction().commit();
+        		id += 1;
+    		}
+    	}
+    	System.out.println(creader.attendees.size());
+    	
+    	session.close();
+    	
+    }
+}
